@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include <SDL2/SDL.h>
 
 typedef struct {
     double x, y, z, w;
@@ -297,7 +296,7 @@ rgba sphere_fshader(const vec uniform, const vec varying) {
         (texel         & 0xFF) * intensity,
         ((texel >> 8)  & 0xFF) * intensity,
         ((texel >> 16) & 0xFF) * intensity,
-        ((texel >> 24) & 0xFF) * intensity};
+        ((texel >> 24) & 0xFF)};
 }
 
 
@@ -347,67 +346,17 @@ void render_main(vec vertex_uniform, vec fragment_uniform, uint *img) {
             */
 }
 
-void sdl_main(void) {
-    const int scale = 1;
-    uint *color = calloc(w * h, sizeof(uint));
-
-    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
-    SDL_Window *window = SDL_CreateWindow("wew",
-            SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-            scale*w, scale*h, SDL_WINDOW_OPENGL);
-    SDL_Renderer *renderer =
-        SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    SDL_Texture *texture = SDL_CreateTexture(renderer,
-            SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING,
-            w, h);
-
-    int closed = 0;
-    while(!closed) {
-        SDL_Event event;
-        while(SDL_PollEvent(&event)) {
-            if(event.type == SDL_WINDOWEVENT &&
-                    event.window.event == SDL_WINDOWEVENT_CLOSE) {
-                closed = 1;
-            }
-            //other stuff
-        }
-
-        uint ticks = SDL_GetTicks();
-        vec uni = {1, (double[]){ticks / 1000.}};
-        render_main(uni, uni, color);
-
-        SDL_UpdateTexture(texture, NULL, color, sizeof(uint)*w);
-        SDL_RenderCopy(renderer, texture, NULL, NULL);
-        SDL_RenderPresent(renderer);
-    }
-
-    SDL_DestroyTexture(texture);
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-    free(color);
-}
-
-void pam_main(void) {
-    uint *img = calloc(w * h, sizeof(uint));
-    char fn[12];
-    for (int t = 0; t < 314; t++) {
-        vec uni = {1, (double[]){t * 0.02}};
-        render_main(uni, uni, img);
-
-        sprintf(fn, "frames/frame%03d.pam", t);
-        FILE *f = fopen(fn, "w");
-        fprintf(f, "P7\nWIDTH %d\nHEIGHT %d"
-                "\nDEPTH 4\nMAXVAL 255\nTUPLTYPE RGB_ALPHA\nENDHDR\n",
-                w, h);
-        fwrite(img, w * h, sizeof(uint), f);
-        fclose(f);
-    }
-    free(img);
-}
-
+const uint frames = 0;
 int main(int argc, const char *argv[]) {
-    sdl_main();
+    uint *img = calloc(w * h, sizeof(uint));
+    FILE *f = stdout; //fopen("/dev/null", "w");
+    for (int t = 0; !frames || t < frames; t++) {
+        vec uni = {1, (double[]){t / 30.}};
+        render_main(uni, uni, img);
+        fwrite(img, w * h, sizeof(uint), f);
+    }
+    fclose(f);
+    free(img);
     return 0;
 }
 
