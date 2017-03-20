@@ -65,10 +65,10 @@ void rasterize(
     double pax = a.pos.x / a.pos.w, pay = a.pos.y / a.pos.w,
            pbx = b.pos.x / b.pos.w, pby = b.pos.y / b.pos.w,
            pcx = c.pos.x / c.pos.w, pcy = c.pos.y / c.pos.w;
-    int minX = MIN(SX(pax), MIN(SX(pbx), SX(pcx))),
-        minY = MIN(SY(pay), MIN(SY(pby), SY(pcy))),
-        maxX = MAX(SX(pax), MAX(SX(pbx), SX(pcx))),
-        maxY = MAX(SY(pay), MAX(SY(pby), SY(pcy)));
+    int minX = MAX(0, MIN(SX(pax), MIN(SX(pbx), SX(pcx)))),
+        minY = MAX(0, MIN(SY(pay), MIN(SY(pby), SY(pcy)))),
+        maxX = MIN(w - 1, MAX(SX(pax), MAX(SX(pbx), SX(pcx)))),
+        maxY = MIN(h - 1, MAX(SY(pay), MAX(SY(pby), SY(pcy))));
     for (int ix = minX; ix <= maxX; ix++) {
         for (int iy = minY; iy <= maxY; iy++) {
             double x = (double)ix * 2 / w - 1, y = (double)iy * 2 / h - 1;
@@ -276,7 +276,6 @@ double phong(const double v[3], const double normal[3], const double s[3]) {
     normalize(r_s);
     double intensity = k_a + k_d * DOT(l_s, normal) +
         k_s * pow(DOT(r_s, -normal), a);
-    intensity = MAX(0, MIN(1, intensity));
     return intensity;
 }
 
@@ -289,6 +288,7 @@ rgba sphere_fshader(const vec uniform, const vec varying) {
            normal[3] = T(v[_]);
     normalize(normal);
     double intensity = phong(v, normal, m) + phong(v, normal, n);
+    intensity = MAX(0, MIN(1, intensity));
     int tx = MAX(0, MIN(stw - 1, v[3] * stw)),
         ty = MAX(0, MIN(sth - 1, (1 - v[4]) * sth));
     uint texel = sphere_tex[ty * stw + tx];
@@ -297,6 +297,50 @@ rgba sphere_fshader(const vec uniform, const vec varying) {
         ((texel >> 8)  & 0xFF) * intensity,
         ((texel >> 16) & 0xFF) * intensity,
         ((texel >> 24) & 0xFF)};
+}
+
+
+const int dna_num_vertices = 19375;
+vec dna_vertices[19375];
+double dna_vertex_dat[155000];
+const int dna_num_triangles = 31799;
+int dna_triangles[31799 * 3];
+
+void dna_transform(double time, double v[3]) {
+    double x = v[0] / 2, y = v[2] / -2, z = v[1] / -2;
+    v[0] = x * cos(time) + z * sin(time);
+    v[1] = y;
+    v[2] = z * cos(time) - x * sin(time);
+}
+
+point dna_vshader(const vec uniform, const vec attrs) {
+    double time = uniform.vals[0];
+    double *v = attrs.vals;
+    point p;
+    p.val.len = 6;
+    p.val.vals = calloc(p.val.len, sizeof(double));
+    p.val.vals[0] = v[0];
+    p.val.vals[1] = v[1];
+    p.val.vals[2] = v[2];
+    p.val.vals[3] = v[5];
+    p.val.vals[4] = v[6];
+    p.val.vals[5] = v[7];
+    dna_transform(time, p.val.vals);
+    dna_transform(time, p.val.vals + 3);
+    normalize(p.val.vals + 3);
+    p.pos.x = p.val.vals[0];
+    p.pos.y = p.val.vals[1];
+    p.pos.z = p.val.vals[2];
+    p.pos.w = (p.pos.z + 3) / 2;
+    return p;
+}
+
+rgba dna_fshader(const vec uniform, const vec varying) {
+    double *v = varying.vals,
+           *normal = v + 3;
+    double intensity = phong(v, normal, m) + phong(v, normal, n);
+    intensity = MAX(0, MIN(1, intensity));
+    return (rgba){0xFF * intensity, 0, 0, 0xFF};
 }
 
 
@@ -310,6 +354,8 @@ static vec *sphere_vertices;
 static int sphere_num_triangles;
 static int *sphere_triangles;
 
+static int dna_init = 0;
+
 uint *load_pam(FILE *f, int *w, int *h) {
     fseek(f, 9, SEEK_CUR);
     fscanf(f, "%d", w);
@@ -322,6 +368,24 @@ uint *load_pam(FILE *f, int *w, int *h) {
 }
 
 void render_main(vec vertex_uniform, vec fragment_uniform, uint *img) {
+    if (!dna_init) {
+        FILE *f = fopen("dna_vertices", "r");
+        fread(dna_vertex_dat, 1, sizeof(dna_vertex_dat), f);
+        fclose(f);
+        f = fopen("dna_triangles", "r");
+        fread(dna_triangles, 1, sizeof(dna_triangles), f);
+        fclose(f);
+        for (int i = 0; i < 19375; i++) {
+            dna_vertices[i] = (vec){8, dna_vertex_dat + i * 8};
+        }
+        dna_init = 1;
+    }
+    render(dna_vshader, dna_fshader,
+            vertex_uniform, fragment_uniform,
+            dna_num_vertices, dna_vertices,
+            dna_num_triangles, dna_triangles,
+            w, h, img);
+    /*
     if (!sphere_init) {
         sphere_num_vertices = (res_t - 1) * res_p;
         sphere_num_triangles = (res_t - 2) * res_p * 2;
@@ -337,6 +401,7 @@ void render_main(vec vertex_uniform, vec fragment_uniform, uint *img) {
             sphere_num_vertices, sphere_vertices,
             sphere_num_triangles, sphere_triangles,
             w, h, img);
+            */
     /*
     render(tetra_vshader, tetra_fshader,
             vertex_uniform, fragment_uniform,
