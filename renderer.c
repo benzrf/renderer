@@ -368,6 +368,7 @@ uint *load_pam(FILE *f, int *w, int *h) {
 }
 
 void render_main(vec vertex_uniform, vec fragment_uniform, uint *img) {
+    /*
     if (!dna_init) {
         FILE *f = fopen("dna_vertices", "r");
         fread(dna_vertex_dat, 1, sizeof(dna_vertex_dat), f);
@@ -385,7 +386,7 @@ void render_main(vec vertex_uniform, vec fragment_uniform, uint *img) {
             dna_num_vertices, dna_vertices,
             dna_num_triangles, dna_triangles,
             w, h, img);
-    /*
+            */
     if (!sphere_init) {
         sphere_num_vertices = (res_t - 1) * res_p;
         sphere_num_triangles = (res_t - 2) * res_p * 2;
@@ -401,7 +402,6 @@ void render_main(vec vertex_uniform, vec fragment_uniform, uint *img) {
             sphere_num_vertices, sphere_vertices,
             sphere_num_triangles, sphere_triangles,
             w, h, img);
-            */
     /*
     render(tetra_vshader, tetra_fshader,
             vertex_uniform, fragment_uniform,
