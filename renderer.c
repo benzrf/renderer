@@ -106,7 +106,7 @@ void render(
         const int num_vertices, const vec *vertices,
         const int num_triangles, const int *triangles,
         const int w, const int h, uint *img) {
-    fragment *raster = calloc(sizeof(fragment), w * h);
+    fragment *raster = calloc(w * h, sizeof(fragment));
     for (int y = 0; y < h; y++)
         for (int x = 0; x < w; x++)
             raster[x + y * w] = (fragment){1.0/0.0, {0, NULL}};
