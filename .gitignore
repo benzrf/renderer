@@ -1,3 +1,6 @@
 .*.swp
-renderer
+*.o
+tetra
+sphere
+dna
 
