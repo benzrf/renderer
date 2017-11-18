@@ -7,15 +7,15 @@
 #define LEG_LEN 0.28867513459481287
 #define HEIGHT 0.816496580927726
 #define A(a, b, c, d, e, f, g) {7, (double[]){a, b, c, d, e, f, g}}
-const int tetra_num_vertices = 4;
-const vec tetra_vertices[4] = {
+int tetra_num_vertices = 4;
+vec tetra_vertices[4] = {
     A(   0,      0, -HYPO_LEN, 1, 0, 0, 0),
     A(-0.5,      0,   LEG_LEN, 0, 1, 0, 0),
     A( 0.5,      0,   LEG_LEN, 0, 0, 1, 0),
     A(   0, HEIGHT,         0, 0, 0, 0, 1),
 };
-const int tetra_num_triangles = 4;
-const int tetra_triangles[4 * 3] = {
+int tetra_num_triangles = 4;
+int tetra_triangles[4 * 3] = {
     0, 1, 2,
     0, 1, 3,
     1, 2, 3,
@@ -50,10 +50,11 @@ rgba tetra_fshader(const vec uniform, const vec varying) {
 }
 
 int main(void) {
-    render_main_default(
-            tetra_vshader, tetra_fshader,
-            tetra_num_vertices, tetra_vertices,
-            tetra_num_triangles, tetra_triangles);
+    scene scene = {
+        tetra_vshader, tetra_fshader,
+        tetra_num_vertices, tetra_vertices,
+        tetra_num_vertices, tetra_triangles};
+    render_main_default(scene);
     return 0;
 }
 

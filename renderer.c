@@ -66,30 +66,27 @@ void rasterize(
     }
 }
 
-void render(
-        const vshader vertex_shader, const fshader fragment_shader,
-        const vec vertex_uniform, const vec fragment_uniform,
-        const int num_vertices, const vec *vertices,
-        const int num_triangles, const int *triangles,
-        const int w, const int h, uint *img) {
+void render(const scene scene, image image) {
+    int w = image.w, h = image.h;
     fragment *raster = calloc(w * h, sizeof(fragment));
     for (int y = 0; y < h; y++)
         for (int x = 0; x < w; x++)
             raster[x + y * w] = (fragment){1.0/0.0, {0, NULL}};
 
-    point vpoints[num_vertices];
-    for (int v = 0; v < num_vertices; v++)
-        vpoints[v] = vertex_shader(vertex_uniform, vertices[v]);
+    point vpoints[scene.num_vertices];
+    for (int v = 0; v < scene.num_vertices; v++)
+        vpoints[v] = scene.vertex_shader(
+                scene.vertex_uniform, scene.vertices[v]);
 
     point a, b, c;
-    for (int t = 0; t < num_triangles; t++) {
-        a = vpoints[triangles[t * 3]];
-        b = vpoints[triangles[t * 3 + 1]];
-        c = vpoints[triangles[t * 3 + 2]];
+    for (int t = 0; t < scene.num_triangles; t++) {
+        a = vpoints[scene.triangles[t * 3]];
+        b = vpoints[scene.triangles[t * 3 + 1]];
+        c = vpoints[scene.triangles[t * 3 + 2]];
         rasterize(w, h, raster, a, b, c);
     }
 
-    for (int v = 0; v < num_vertices; v++)
+    for (int v = 0; v < scene.num_vertices; v++)
         free(vpoints[v].val.vals);
 
     fragment f;
@@ -100,10 +97,11 @@ void render(
             if (f.varying.vals == NULL)
                 col = (rgba){0, 0, 0, 0xFF};
             else {
-                col = fragment_shader(fragment_uniform, f.varying);
+                col = scene.fragment_shader(
+                        scene.fragment_uniform, f.varying);
                 free(f.varying.vals);
             }
-            img[(h - y - 1) * w + x] =
+            image.data[(h - y - 1) * w + x] =
                 col.a << 24 | col.b << 16 |
                 col.g << 8  | col.r;
         }
@@ -113,32 +111,19 @@ void render(
 
 void render_main(
         FILE *out, const uint frames,
-        const vshader vertex_shader, const fshader fragment_shader,
-        const int num_vertices, const vec *vertices,
-        const int num_triangles, const int *triangles,
-        const int w, const int h) {
-    uint *img = calloc(w * h, sizeof(uint));
+        scene scene, const int w, const int h) {
+    image image = {w, h};
+    image.data = calloc(w * h, sizeof(uint));
     for (int t = 0; !frames || t < frames; t++) {
-        vec uni = {1, (double[]){t / 30.}};
-        render(vertex_shader, fragment_shader,
-                uni, uni,
-                num_vertices, vertices,
-                num_triangles, triangles,
-                w, h, img);
-        fwrite(img, w * h, sizeof(uint), out);
+        scene.vertex_uniform =
+            scene.fragment_uniform = (vec){1, (double[]){t / 30.}};
+        render(scene, image);
+        fwrite(image.data, w * h, sizeof(uint), out);
     }
-    free(img);
+    free(image.data);
 }
 
-void render_main_default(
-        const vshader vertex_shader, const fshader fragment_shader,
-        const int num_vertices, const vec *vertices,
-        const int num_triangles, const int *triangles) {
-    render_main(
-            stdout, FRAMES,
-            vertex_shader, fragment_shader,
-            num_vertices, vertices,
-            num_triangles, triangles,
-            W, H);
+void render_main_default(scene scene) {
+    render_main(stdout, FRAMES, scene, W, H);
 }
 

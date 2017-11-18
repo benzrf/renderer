@@ -42,27 +42,25 @@ rgba dna_fshader(const vec uniform, const vec varying) {
 
 #define VERTEX_DAT_ENTRIES 155000
 int main(void) {
-    int dna_num_vertices = 19375;
-    int dna_num_triangles = 31799;
+    scene scene = {dna_vshader, dna_fshader};
+    scene.num_vertices = 19375;
+    scene.num_triangles = 31799;
 
     double *dna_vertex_dat = calloc(VERTEX_DAT_ENTRIES, sizeof(double));
-    vec *dna_vertices = calloc(19375, sizeof(vec));
-    int *dna_triangles = calloc(31799 * 3, sizeof(int));
+    scene.vertices = calloc(19375, sizeof(vec));
+    scene.triangles = calloc(31799 * 3, sizeof(int));
 
     FILE *f = fopen("dna_vertices", "r");
     fread(dna_vertex_dat, VERTEX_DAT_ENTRIES, sizeof(double), f);
     fclose(f);
     f = fopen("dna_triangles", "r");
-    fread(dna_triangles, dna_num_triangles * 3, sizeof(int), f);
+    fread(scene.triangles, scene.num_triangles * 3, sizeof(int), f);
     fclose(f);
     for (int i = 0; i < 19375; i++) {
-        dna_vertices[i] = (vec){8, dna_vertex_dat + i * 8};
+        scene.vertices[i] = (vec){8, dna_vertex_dat + i * 8};
     }
 
-    render_main_default(
-            dna_vshader, dna_fshader,
-            dna_num_vertices, dna_vertices,
-            dna_num_triangles, dna_triangles);
+    render_main_default(scene);
     return 0;
 }
 

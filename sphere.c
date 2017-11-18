@@ -97,20 +97,16 @@ uint *load_pam(FILE *f, int *w, int *h) {
 #define RES_T 15
 #define RES_P 15
 int main(void) {
-    int sphere_num_vertices = (RES_T - 1) * RES_P,
-        sphere_num_triangles = (RES_T - 2) * RES_P * 2;
-    vec *sphere_vertices;
-    int *sphere_triangles;
+    scene scene = {sphere_vshader, sphere_fshader};
+    scene.num_vertices = (RES_T - 1) * RES_P;
+    scene.num_triangles = (RES_T - 2) * RES_P * 2;
     sphere_vertices_triangles(
-            RES_T, RES_P, &sphere_vertices, &sphere_triangles);
+            RES_T, RES_P, &scene.vertices, &scene.triangles);
     FILE *f = fopen("gear.pam", "r");
     sphere_tex = load_pam(f, &stw, &sth);
     fclose(f);
 
-    render_main_default(
-            sphere_vshader, sphere_fshader,
-            sphere_num_vertices, sphere_vertices,
-            sphere_num_triangles, sphere_triangles);
+    render_main_default(scene);
     return 0;
 }
 

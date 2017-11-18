@@ -26,24 +26,32 @@ typedef struct {
 typedef point (*vshader)(const vec uniform, const vec attrs);
 typedef rgba  (*fshader)(const vec uniform, const vec varying);
 
-void render(
-        const vshader vertex_shader, const fshader fragment_shader,
-        const vec vertex_uniform, const vec fragment_uniform,
-        const int num_vertices, const vec *vertices,
-        const int num_triangles, const int *triangles,
-        const int w, const int h, uint *img);
+typedef struct {
+    vshader vertex_shader;
+    fshader fragment_shader;
+
+    int num_vertices;
+    vec *vertices;
+    int num_triangles;
+    int *triangles;
+
+    vec vertex_uniform;
+    vec fragment_uniform;
+} scene;
+
+typedef struct {
+    int w;
+    int h;
+    uint *data;
+} image;
+
+void render(const scene scene, image image);
 
 void render_main(
         FILE *out, const uint frames,
-        const vshader vertex_shader, const fshader fragment_shader,
-        const int num_vertices, const vec *vertices,
-        const int num_triangles, const int *triangles,
-        const int w, const int h);
+        scene scene, const int w, const int h);
 
-void render_main_default(
-        const vshader vertex_shader, const fshader fragment_shader,
-        const int num_vertices, const vec *vertices,
-        const int num_triangles, const int *triangles);
+void render_main_default(scene scene);
 
 #define MIN(a,b) \
   ({ __typeof__ (a) _a = (a); \
